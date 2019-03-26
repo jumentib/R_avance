@@ -1,0 +1,895 @@
+---
+title: "Note"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+```
+
+
+# cours 1
+
+
+Ctrl + Space (auto-completion, better than Tab)
+Ctrl + Up (command history & search)
+Ctrl + Click (function source code)
+Ctrl + Enter (execute line of code)
+Ctrl + Shift + A (reformat code)
+Ctrl + Shift + C (comment/uncomment selected lines)
+Ctrl + Shift + K (knit)
+Ctrl + Shift + B (build package, website or book)
+Ctrl + Shift + M (pipe)
+Alt + Shift + K to see all shortcuts…
+
+# cours 2
+
+les methods sont des fonctions pour certaine classe
+
+apres un lapply faire un do.call
+
+```{r}
+# lapply et do.call
+tmp1 <- lapply(1:10, function(x) rnorm(10, x))
+tmp2 <- do.call("rbind", tmp1)
+
+# replicate
+a <- replicate(5, rnorm(10))
+```
+
+order peut ordonner un data.frame 
+
+```{r}
+order(c(1, 6, 8, 2, 2), c(0, 0, 0, 2, 1))
+# et different de 
+order(c(1, 6, 8, 2, 2, 0, 0, 0, 2, 1))
+```
+
+Pour ordonner des caracteres selon les nombres --> interressant
+gtools::mixedsort(c("a1", "a2", "a10"))  ## not in base, obviously
+
+```{r}
+gtools::mixedsort(c("a1", "a2", "a10"))
+```
+
+pmin et pmax --> min et max vectorisé
+
+outer --> 
+```{r}
+outer(1:4, 1:3,'+') # la fonction entre '' doit pouvoir etre vectorisé
+```
+
+```{r}
+expand.grid(param1 = c(5, 50), param2 = c(1, 3, 10))
+```
+
+```{r}
+me <- 1:10
+a <- glue::glue("I am {me}")  ## not in base, but SO useful
+```
+
+pour lister une liste de fichier
+```{r}
+x <- list.files(pattern = "\\.Rmd$", full.names = TRUE)
+```
+
+intersect, union et diff
+
+```{r}
+intersect(letters[1:4], letters[3:5])
+union(letters[1:4], letters[3:5])
+setdiff(letters[1:4], letters[3:5])
+```
+
+```{r}
+# EXO 3.4.5
+# 1
+
+x <- 1:100
+k <- 3
+
+y <- sample(rep_len(1:k, length(x)))
+ls <- split(x, y)
+# 2
+set.seed(1)
+x <- rnorm(10)
+mean(x)
+error <- qt(0.95, df = length(x) - 1 ) * sd(x) / sqrt(length(x))
+c(mean(x) - error, mean(x) + error)
+
+x <- replicate(100, sample(x, length(10), replace = T))
+
+# pour le bootstrap
+boot <- replicate(10000, mean(sample(x, replace = T)))
+quantile(boot, probs = c(0.25, 0.975))
+
+
+# 3
+my_mtcars <- mtcars[c("mpg", "hp")]
+my_mtcars$my_col <- sample(c("mpg", "hp"), size = nrow(my_mtcars), replace = TRUE)
+head(my_mtcars)
+
+a <- cbind(1:nrow(my_mtcars), match(my_mtcars$my_col, names(my_mtcars)))
+cbind(my_mtcars, truc = my_mtcars[a])
+
+
+# 4
+
+df <- data.frame(
+  id1 = c("a", "f", "a"),
+  id2 = c("b", "e", "e"), 
+  id3 = c("c", "d", "f"),
+  inter = c(7.343, 2.454, 3.234),
+  stringsAsFactors = FALSE
+)
+df
+
+code <- setNames(1:6, letters[1:6])
+
+df[1:3] <- lapply(df[-4], function(var) code[var])
+
+
+```
+
+les class
+
+```{r}
+agent007 <- list(first = "James", last = "Bond")
+
+class(agent007) <- "Person"  ## "agent007" is now an object of class "Person"
+# Just make a function called <method_name>.<class_name>()
+print.Person <- function(x) {
+  print(glue::glue("My name is {x$last}, {x$first} {x$last}."))
+  invisible(x)
+}
+
+agent007
+
+
+Person <- function(first, last) {
+  structure(list(first = first, last = last), class = "Person")
+}
+me <- Person("Florian", "Prive")
+
+Worker <- function(first, last, job) {
+  obj <- Person(first, last)
+  obj$job <- job
+  class(obj) <- c("Worker", class(obj))
+  obj
+}
+print.Worker <- function(x) {
+  print.Person(x) 
+  print(glue::glue("I am a {x$job}."))
+  invisible(x)
+}
+
+(worker_007 <- Worker("James", "Bond", "secret agent"))
+```
+
+# Cours 3
+
+--> les tiddle --> sorte de data.frame
+
+```{r}
+library(tidyverse)
+
+as_tibble(iris)
+
+tibble(
+  x = 1:5, 
+  y = 1, 
+  z = x ^ 2 + y
+)
+
+tribble(
+  ~x, ~y, ~z,
+  #--|--|----
+  "a", 2, 3.6,
+  "b", 1, 8.5
+)
+
+# exo
+
+df <- data.frame(abc = 1, xyz = "a")
+df$x
+df[, "xyz"]
+df[, c("abc", "xyz")]
+
+ti <- tibble(abc = 1, xyz = "a")
+
+ti$xyz
+ti[c("xyz")]
+ti[c("abc", "xyz")]
+
+a <- as_tibble(mtcars)
+var <- "mpg"
+
+a[var]
+
+
+annoying <- tibble(
+  `1` = 1:10,
+  `2` = `1` * 2 + rnorm(length(`1`))
+)
+
+a1 <- annoying$`1`
+
+plot(annoying)
+
+annoying$`3` <- annoying$`2` / annoying$`1`
+
+colnames(annoying) <- c("one", "two", "three")
+
+tibble::enframe(annoying)
+
+
+# aes_string pour faire des boucle en ggplot --> permet de prendre des var en X
+# cowplot::plot_grid() a la place de grid_extra
+# cowplot:: get_legend()
+
+```
+
+```{r}
+(df <- gapminder::gapminder %>%
+   filter(year == 1992))
+
+# gdp en fonction de lifeEXP
+
+
+ggplot(df, aes(gdpPercap, lifeExp, size = pop, color = continent)) +
+  geom_point() +
+  scale_x_log10() +
+  xlab("Gross Domestic Product (log scale)") +
+  ylab("Lite Expectancy at birth (years)") +
+  ggtitle("Gapminder for 1992") +
+  labs(size = "Population", color = "Continent") +
+  theme_bw() +
+  theme(axis.title = element_text(size = 15),
+        axis.text = element_text(size = 12),
+        legend.title = element_text(size = 15),
+        legend.text = element_text(size = 12),
+        plot.title = element_text(hjust = 0.5), 
+        title = element_text(size = 15, face = "bold"))
+
+
+
+ggplot(data = diamonds) + 
+  stat_summary(
+    mapping = aes(x = cut, y = depth),
+    fun.ymin = min,
+    fun.ymax = max,
+    fun.y = median
+  )
+
+
+as_tibble(diamonds)
+
+ggplot(diamonds, aes(cut, depth)) +
+  geom_pointrange(stat = "summary")
+
+ggplot(data = mpg, mapping = aes(x = cty, y = hwy)) + 
+  geom_jitter(width = 0)
+
+x <- rnorm(100000)
+y <- 2 * x + rnorm(100000, sd = 2)
+df <- data.frame(x = x, y = y)
+
+ggplot(data = df, mapping = aes(x, y)) + 
+  geom_point(alpha = 0.1)
+
+```
+
+# Cours 4
+
+```{r}
+library(nycflights13)
+library(tidyverse)
+
+flights
+
+jan1 <- filter(flights, month == 1, day == 1)
+
+# fonction near() pour tester une egalité sans probleme de nombre flottant
+
+nov_dec <- filter(flights, month == 11 | month == 12)
+# equivalent a :
+nov_dec <- filter(flights, month %in% c(11, 12))
+
+# les NAs
+df <- tibble(x = c(1, NA, 3))
+filter(df, x > 1)
+
+filter(df, is.na(x) | x > 1)
+
+# exo
+
+(flights)
+
+ti <- filter(flights, arr_delay >= 2 * 60) 
+ti <- filter(ti, dest %in% c("IAH", "HOU"))
+
+# AA      American Airlines Inc.
+# DL      Delta Air Lines Inc. 
+# UA      United Air Lines Inc.    
+
+ti <- filter(ti, carrier %in% c("AA", "DL", "UA"))
+ti <- filter(ti, month %in% c(7, 8, 9))
+ti <- filter(ti, arr_delay >= 2 * 60 & dep_delay == 0)
+
+summary(flights)
+
+# le pipe de dplyr
+ti <- filter(flights, arr_delay >= 2 * 60) %>%
+  filter(., dest %in% c("IAH", "HOU"))
+
+# on peut faire des calculs
+filter(flights, dep_delay >= 60, dep_delay - arr_delay > 30)
+
+arrange(flights, year, month, day)
+# permet d'ordonner selon l'annee, le mois et ensuite le jour
+
+# pour ordonner de facon decroissante
+arrange(flights, desc(dep_delay))
+
+
+arrange(flights, desc(is.na(dep_time)))
+
+arrange(flights, desc(arr_delay))
+arrange(flights, air_time)
+
+# Select all columns between year and day (inclusive)
+select(flights, year:day)
+# Select columns by name
+select(flights, year, month, day)
+
+# Select all columns except those from year to day (inclusive)
+select(flights, -(year:day))
+select(flights, 1:3)
+
+
+
+# selection de lignes
+flights %>% 
+  slice(10:22)
+
+
+rename(flights, annee = year)
+
+select(flights, time_hour, air_time, everything())
+```
+
+There are a number of helper functions you can use within select():
+
+    starts_with("abc"): matches names that begin with “abc”.
+
+    ends_with("xyz"): matches names that end with “xyz”.
+
+    contains("ijk"): matches names that contain “ijk”.
+
+    matches("(.)\\1"): selects variables that match a regular expression. This one matches any variables that contain repeated characters. You’ll learn more about regular expressions in strings.
+
+    num_range("x", 1:3): matches x1, x2 and x3.
+    
+```{r}
+vars <- c("year", "month", "day", "dep_delay", "arr_delay")
+
+select(flights, vars)
+
+select(flights, contains("TIME"))
+
+flights_sml <- select(flights, 
+  year:day, 
+  ends_with("delay"), 
+  distance, 
+  air_time
+)
+mutate(flights_sml,
+  gain = dep_delay - arr_delay,
+  speed = distance / air_time * 60
+)
+
+mutate(flights_sml,
+  gain = dep_delay - arr_delay,
+  hours = air_time / 60,
+  gain_per_hour = gain / hours
+)
+
+transmute(flights,
+  gain = dep_delay - arr_delay,
+  hours = air_time / 60,
+  gain_per_hour = gain / hours
+)
+
+
+transmute(flights,
+  dep_time,
+  hour = dep_time %/% 100,
+  minute = dep_time %% 100
+)
+
+
+transmute(flights, time = dep_time %/% 100 * 60 + dep_time %% 100)
+
+
+# truc utile
+# le mutate if
+mutate_if(iris, as.factor, as.character)
+
+mutate_at(flights, c("dep_time", "sched_dep_time"), function(x) {
+  (x %/% 100 * 60 + x %% 100) %% 1440
+})
+```
+
+# cours 5
+
+```{r}
+summarise(flights, delay = mean(dep_delay, na.rm = TRUE))
+
+by_day <- group_by(flights, year, month, day)
+summarise(by_day, delay = mean(dep_delay, na.rm = TRUE))
+
+# or
+
+flights %>% 
+  group_by(year, month, day) %>%
+  summarise(delay = mean(dep_delay, na.rm = TRUE))
+
+
+by_dest <- group_by(flights, dest)
+delay <- summarise(by_dest,
+  count = n(), # fonction pour compter le nombre d'occurence
+  dist = mean(distance, na.rm = TRUE),
+  delay = mean(arr_delay, na.rm = TRUE)
+)
+delay <- filter(delay, count > 20, dest != "HNL")
+
+
+ggplot(data = delay, mapping = aes(x = dist, y = delay)) +
+  geom_point(aes(size = count), alpha = 1/3) +
+  geom_smooth(se = FALSE)
+
+delays <- flights %>% 
+  group_by(dest) %>% 
+  summarise(
+    count = n(),
+    dist = mean(distance, na.rm = TRUE),
+    delay = mean(arr_delay, na.rm = TRUE)
+  ) %>% 
+  filter(count > 20, dest != "HNL")
+
+
+
+# Convert to a tibble so it prints nicely
+batting <- as_tibble(Lahman::Batting)
+
+batters <- batting %>% 
+  group_by(playerID) %>% 
+  summarise(
+    ba = sum(H, na.rm = TRUE) / sum(AB, na.rm = TRUE),
+    ab = sum(AB, na.rm = TRUE)
+  )
+
+batters %>% 
+  filter(ab > 100) %>% 
+  ggplot(mapping = aes(x = ab, y = ba)) +
+    geom_point() + 
+    geom_smooth(se = FALSE)
+
+
+not_cancelled <- flights %>% 
+  filter(!is.na(dep_delay), !is.na(arr_delay))
+
+
+not_cancelled %>% 
+  count(tailnum, wt = distance)
+
+
+daily <- group_by(flights, year, month, day)
+(per_day   <- summarise(daily, flights = n()))
+
+
+
+daily %>% 
+  ungroup() %>%             # no longer grouped by date
+  summarise(flights = n())  # all flights
+
+
+# exo 
+# A flight is 15 minutes early 50% of the time, and 15 minutes late 50% of the time.
+
+
+# A flight is always 10 minutes late.
+flights %>% 
+  group_by(flight) %>%
+  summarise(delay = mean(arr_delay, na.rm = TRUE)) %>%
+  filter(delay >= 10)
+
+
+not_cancelled %>% 
+  count(dest)
+
+not_cancelled %>% 
+  group_by(dest) %>% 
+  summarise(n())
+
+not_cancelled %>% 
+  count(tailnum, wt = distance)
+
+
+# Look at the number of cancelled flights per day. Is there a pattern? Is the proportion of cancelled flights related to the average delay?
+
+cancelled <- flights %>% 
+  filter(is.na(dep_delay), is.na(arr_delay))
+
+cancelled %>% 
+  group_by(month, day) %>% 
+  summarise(n = n()) %>% 
+  ggplot(aes(day, n)) +
+  geom_point() +
+  geom_line() +
+  coord_polar()
+
+
+
+flights %>% 
+  group_by(carrier) %>% 
+  summarise(arr_delay = mean(arr_delay, na.rm = T),
+            n = n()) %>% 
+  arrange(desc(arr_delay)) %>% 
+  left_join(airlines) %>% 
+  filter(n > 100)
+  
+
+popular_dests <- flights %>% 
+  group_by(dest) %>% 
+  filter(n() > 365)
+
+
+popular_dests %>% 
+  filter(arr_delay > 0) %>% 
+  mutate(prop_delay = arr_delay / sum(arr_delay)) %>% 
+  select(year:day, dest, arr_delay, prop_delay)
+
+flights %>% 
+  group_by(tailnum) %>% 
+  summarise(worst = max(arr_delay, na.rm = T)) %>% 
+  arrange(desc(worst))
+
+# What time of day should you fly if you want to avoid delays as much as possible?
+flights
+
+flights %>% 
+  group_by(hour) %>% 
+  summarise(arr_delay = mean(arr_delay, na.rm = T), n = n()) %>% 
+  ggplot(aes(hour, arr_delay, color = n)) +
+  geom_point() +
+  scale_color_viridis_c()
+
+# For each destination, compute the total minutes of delay. For each flight, compute the proportion of the total delay for its destination.
+
+flights %>% 
+  filter(arr_delay > 0) %>% 
+  group_by(dest) %>% 
+  mutate(sum_delay = sum(arr_delay, na.rm = T), prop_delay = arr_delay / sum_delay)
+
+# Database
+library(DBI)
+# Create an ephemeral in-memory RSQLite database
+con <- dbConnect(RSQLite::SQLite(), dbname = ":memory:")
+
+dbListTables(con)
+dbWriteTable(con, "mtcars", mtcars)
+dbListTables(con)
+
+dbListFields(con, "mtcars")
+dbReadTable(con, "mtcars")
+
+# You can fetch all results:
+res <- dbSendQuery(con, "SELECT * FROM mtcars WHERE cyl = 4")
+dbFetch(res)
+dbClearResult(res)
+
+# Or a chunk at a time
+res <- dbSendQuery(con, "SELECT * FROM mtcars WHERE cyl = 4")
+while(!dbHasCompleted(res)){
+  chunk <- dbFetch(res, n = 5)
+  print(nrow(chunk))
+}
+dbClearResult(res)
+
+DBI::dbDisconnect(con) 
+
+library(dbplyr)
+con <- DBI::dbConnect(RSQLite::SQLite(), dbname = ":memory:")
+copy_to(con, nycflights13::flights, "flights",
+  temporary = FALSE, 
+  indexes = list(
+    c("year", "month", "day"), 
+    "carrier", 
+    "tailnum",
+    "dest"
+  )
+)
+flights_db <- tbl(con, "flights")
+
+flights_db %>% filter(dep_delay > 240)
+
+tailnum_delay_db <- flights_db %>% 
+  group_by(tailnum) %>%
+  summarise(
+    delay = mean(arr_delay),
+    n = n()
+  ) %>% 
+  arrange(desc(delay)) %>%
+  filter(n > 100)
+
+tailnum_delay <- tailnum_delay_db %>% collect()
+
+```
+
+# cours 6
+
+--> chapitre important
+
+
+```{r}
+library(nycflights13)
+library(dplyr)
+
+# il faut mieux travailler sur les colonnes que sur les lignes (pour un data.frame)
+# plus rapide au niveau de la memoire
+
+# ca c'est lent --> temps N au carré
+x <- rnorm(1e5)  # Try also with n = 1e5
+system.time({
+  current_sum <- 0
+  res <- c()
+  for (x_i in x) {
+    current_sum <- current_sum + x_i
+    res <- c(res, current_sum)
+  }
+})
+
+# ca c'est rapide (si on connait la taille du resultat) --> temps N 
+system.time({
+  current_sum <- 0
+  res2 <- double(length(x))
+  for (i in seq_along(x)) {
+    current_sum <- current_sum + x[i]
+    res2[i] <- current_sum
+  }
+})
+# si on connait pas la taille : rapide aussi --> temps N * K
+system.time({
+  current_sum <- 0
+  res3 <- list()
+  for (i in seq_along(x)) {
+    current_sum <- current_sum + x[i]
+    res3[[i]] <- current_sum
+  }
+})
+
+res3 <- unlist(res3) # pour defaire la liste --> temps N * logN
+
+# ou alors 
+system.time({
+  current_sum <- 0
+  res4 <- c()
+  for (i in seq_along(x)) {
+    current_sum <- current_sum + x[i]
+    res4[i] <- current_sum
+  }
+})
+
+# ou parfait (car coder en C)
+res5 <- cumsum(x)
+
+
+# autre exemple
+n <- 1e3
+max <- 1:1000
+system.time({
+  mat <- NULL
+  for (m in max) {
+    mat <- cbind(mat, runif(n, max = m))
+  }
+})
+
+# bon avec une list
+system.time({
+  l <- vector("list", length(max)) # pour initialiser la liste
+  for (i in seq_along(max)) {
+    l[[i]] <- runif(n, max = max[i])
+  }
+  mat2 <- do.call("cbind", l) # penser a l'usage de do.call()
+})
+# ou un peu pareil
+system.time({
+  l <- list()
+  for (i in seq_along(max)) {
+    l[[i]] <- runif(n, max = max[i])
+  }
+  mat3 <- do.call("cbind", l)
+})
+# ou : --> pas mal ca
+system.time({
+  mat4 <- matrix(0, n, length(max))
+  for (i in seq_along(max)) {
+    mat4[, i] <- runif(n, max = max[i])
+  }
+})
+# ou avec sapply
+system.time(
+  mat5 <- sapply(max, function(m) runif(n, max = m))
+)
+
+# parcourir les matrices en colonnes pour aller plus vite
+
+
+# package matrixStats --> pour avoir des fonctions style rowMeans() !
+# ca va beaucoup plus vite
+
+# lire les .csv --> package data.table::fread(data.table::FALSE)
+# fini read.csv
+
+
+# on peur voir quelle fonction prend du temps
+# faire Profile --> Profil Selected Lines ou alt + maj + cmd + P
+
+
+# Vectorasarion
+monte_carlo <- function(N) {
+  
+  hits <- 0
+  for (i in seq_len(N)) {
+    u1 <- runif(1)
+    u2 <- runif(1)
+    if (u1 ^ 2 > u2) {
+      hits <- hits + 1
+    }
+  }
+  
+  hits / N
+}
+monte_carlo(1000000)
+# traduire la boucle part expression vectorisé
+
+monte_carlo2 <- function(N) {
+  
+  hits <- 0
+  for (i in seq_len(N)) {
+    u <- runif(2)
+    if (u[1] ^ 2 > u[2]) {
+      hits <- hits + 1
+    }
+  }
+  
+  hits / N
+}
+
+monte_carlo3 <- function(N) {
+  mean(runif(N) ^ 2 > runif(N))
+}
+
+system.time(a1 <- monte_carlo(1000000))
+system.time(a2 <- monte_carlo2(1000000))
+system.time(a3 <- monte_carlo3(1000000))
+
+
+# les boucles en C ++
+library(Rcpp)
+
+
+
+is_odd_r <- function(n = 10) {
+  n %% 2 == 1
+}
+
+is_odd_r(1:10)
+
+
+gibbs_r <- function(N, thin) {
+  mat <- matrix(nrow = 2, ncol = N)
+  x <- y <- 0
+  for (i in 1:N) {
+    for (j in 1:thin) {
+      x <- rgamma(1, 3, y * y + 4)
+      y <- rnorm(1, 1 / (x + 1), 1 / sqrt(2 * (x + 1)))
+    }
+    mat[, i] <- c(x, y)
+  }
+  mat
+}
+
+
+gr <- gibbs_r(10000, 100)
+plot(t(gr))
+```
+
+```{r}
+# cours 7
+library(tidyverse)
+
+mydf <- readRDS("one-million.rds")
+
+QRA_3Dmatrix <- array(0, dim = c(max(mydf$ID), max(mydf$Volume), 2))
+
+res <- mydf %>%
+  group_by(ID, Volume) %>%
+  summarise(count = n(), 
+            sum_energy = sum(1 - 1.358 / (1 + exp( (1000 * Energy - 129000) / 120300))))
+
+ind <- cbind(res$ID, res$Volume)
+
+QRA_3Dmatrix2 <- array(0, dim = c(max(mydf$ID), max(mydf$Volume), 2))
+
+QRA_3Dmatrix2[cbind(ind, 1)] <- res$count
+QRA_3Dmatrix2[cbind(ind, 2)] <- res$sum_energy
+
+# fonction sweep interressante
+
+m0 <- matrix(rnorm(1e6), 1e3, 1e3)
+
+# vectorisation
+
+M <- 50
+step1 <- runif(M)
+A <- rnorm(M)
+N <- 1e4
+
+tau <- matrix(0, N + 1, M)
+tau[1, ] <- A
+for (j in 1:M) {
+  for (i in 2:nrow(tau)) {
+    tau[i, j] <- tau[i - 1, j] + step1[j] * 1.0025^(i - 2)
+  }
+} 
+
+dim(tau)
+
+# du coup 
+# matrice M * N (outer multiplication entre 2 vecteurs et tte leurs possibilité)
+MN <- rbind(rep(0, M),
+            outer(1.0025^(0:(N - 1)), step1))
+
+tau2 <- matrix(A, N + 1, M, byrow = T)
+
+tau2 <- tau2 + matrixStats::colCumsums(MN)
+
+all.equal(tau, tau2)
+
+# exemple outer
+a <- (1:10)
+b <- (11:1)
+
+ab <- outer(a, b, "-")
+
+x <- 1:9; names(x) <- x
+# Multiplication & Power Tables
+x %o% x
+y <- 2:8; names(y) <- paste(y,":", sep = "")
+outer(y, x, "^")
+
+outer(month.abb, 1999:2003, FUN = "paste")
+
+##
+x <- sample(10, size = 1e4, replace = TRUE)
+breaks <- c(1, 3, 9, 9.5, 10)
+
+
+hist(x, breaks, plot = F)$count
+hist(x, breaks)
+
+
+n <- length(breaks)
+br <- cbind(breaks[1:(n - 1)], 
+            breaks[2:n])
+
+a <- rep(NA, nrow(br))
+for (i in 1:nrow(br)) {
+  a[i] <- sum(x > br[i, 1] & x <= br[i, 2])
+}
+
+table(cut(x, breaks))
+```
+
